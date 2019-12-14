@@ -1,0 +1,45 @@
+# ============ #
+# OS generated #
+# ============ #
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+.vs
+ehthumbs.db
+Thumbs.db
+
+*.tmproj
+plariumtest**.csproj
+*.unityproj
+plariumtest**.sln
+*.suo
+*.user
+*.pidb
+*.userprefs
+*.booproj
+*.sln.docstates
+
+# Build results
+
+**/bin/[Dd]ebug/
+**/bin/[Rr]elease/
+[Bb]uild/
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+
+AnnotationManager
+assetDatabase3
+AssetImportState
+assetservercachev3
+AssetServerCacheV3
+AssetVersioning.db
+BuildPlayer.prefs
+expandedItems
+FailedAssetImports.txt
+guidmapper
+Assets/UnityVS
+Assets/UnityVS.meta
+TestResults/

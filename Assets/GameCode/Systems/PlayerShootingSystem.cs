@@ -9,16 +9,21 @@ public class PlayerShootingSystem : ComponentSystem
         var isShooting = Input.GetMouseButton(0);
         if (isShooting)
         {
-            Entities.WithAll<PlayerMarker, AimingMarker>().WithNone<Shooting>().ForEach((Entity entity, ref Gun gun) =>
+            Entities.WithAllReadOnly<PlayerMarker, AimingMarker>().WithNone<Shooting>().ForEach((Entity entity, ref Gun gun) =>
             {
-                EntityManager.AddComponentData(entity, new Shooting { Gun = gun });
+                PostUpdateCommands.AddComponent(entity, new Shooting { Gun = gun });
+            });
+
+            Entities.WithAllReadOnly<PlayerMarker, Shooting>().WithNone<AimingMarker>().ForEach((Entity entity) =>
+            {
+                PostUpdateCommands.RemoveComponent<Shooting>(entity);
             });
         }
         else
         {
-            Entities.WithAll<PlayerMarker, Shooting>().ForEach((Entity entity) =>
+            Entities.WithAllReadOnly<PlayerMarker, Shooting>().ForEach((Entity entity) =>
             {
-                EntityManager.RemoveComponent<Shooting>(entity);
+                PostUpdateCommands.RemoveComponent<Shooting>(entity);
             });
         }
     }

@@ -1,7 +1,8 @@
 ﻿using Unity.Collections;
 using Unity.Entities;
+using Unity.Jobs;
 
-public class DamageApplySystem : ComponentSystem
+public class DamageApplySystem : JobComponentSystem
 {
     public NativeMultiHashMap<Entity, Damage> DealtDamage
     {
@@ -20,15 +21,21 @@ public class DamageApplySystem : ComponentSystem
     {
         base.OnDestroy();
 
-        if (DealtDamage.IsCreated)
-        {
-            DealtDamage.Dispose();
-        }
+        DealtDamage.Dispose();
     }
 
-    protected override void OnUpdate()
+    protected override JobHandle OnUpdate(JobHandle inputDeps)
     {
-        Entities.ForEach((Entity entity, ref Health health) =>
+        new DamageApplyJob { DealtDamage = DealtDamage }.Schedule(this, inputDeps).Complete();
+        DealtDamage.Clear();
+        return inputDeps;
+    }
+
+    private struct DamageApplyJob : IJobForEachWithEntity<Health>
+    {
+        [ReadOnly] public NativeMultiHashMap<Entity, Damage> DealtDamage;
+
+        public void Execute(Entity entity, int index, ref Health health)
         {
             if (DealtDamage.TryGetFirstValue(entity, out var damage, out var iterator))
             {
@@ -38,7 +45,6 @@ public class DamageApplySystem : ComponentSystem
                 }
                 while (DealtDamage.TryGetNextValue(out damage, ref iterator));
             }
-        });
-        DealtDamage.Clear();
+        }
     }
 }

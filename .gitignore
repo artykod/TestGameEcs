@@ -11,15 +11,15 @@ ehthumbs.db
 Thumbs.db
 
 *.tmproj
-plariumtest**.csproj
 *.unityproj
-plariumtest**.sln
 *.suo
 *.user
 *.pidb
 *.userprefs
 *.booproj
 *.sln.docstates
+*.csproj
+*.sln
 
 # Build results
 

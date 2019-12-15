@@ -648,7 +648,7 @@ GameObject:
   - component: {fileID: 1601278545}
   - component: {fileID: 1601278544}
   m_Layer: 0
-  m_Name: Game
+  m_Name: GameData
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -671,6 +671,7 @@ MonoBehaviour:
       x: 100
       y: 50
       z: 100
+    EnemySpawnPeriod: 1
     BulletPrefab: {fileID: 1341368445075454, guid: e7e6033d18959cd4784755b19d316857,
       type: 3}
     EnemyPrefab: {fileID: 1980262745857272, guid: 99ddb85d6c7afd5408fd733f4c4c8a64,

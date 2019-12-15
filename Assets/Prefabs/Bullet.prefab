@@ -70,7 +70,7 @@ MonoBehaviour:
     subMesh: 0
     layer: 0
     castShadows: 1
-    receiveShadows: 0
+    receiveShadows: 1
 --- !u!114 &114515870541248098
 MonoBehaviour:
   m_ObjectHideFlags: 0

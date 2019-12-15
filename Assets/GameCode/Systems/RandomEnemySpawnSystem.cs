@@ -13,10 +13,11 @@ public class RandomEnemySpawnSystem : ComponentSystem
         {
             return;
         }
-        _spawnTimer = 1f;
+
+        var gameData = World.GetExistingSystem<GameSystem>().Data;
+        _spawnTimer = gameData.EnemySpawnPeriod;
 
         var random = JobRandom.New();
-        var gameData = World.GetExistingSystem<GameSystem>().Data;
         var fieldSize = gameData.FieldSize;
         var enemyEntity = EntityManager.Instantiate(gameData.EnemyPrefab);
         var spawnPoint = new float3 { x = random.Range(-fieldSize.x / 4f, fieldSize.x / 4f), z = random.Range(-fieldSize.z / 4f, fieldSize.z / 4f) };

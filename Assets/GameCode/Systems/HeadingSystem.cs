@@ -1,4 +1,5 @@
-﻿using Unity.Collections;
+﻿using Unity.Burst;
+using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
 using Unity.Mathematics;
@@ -11,6 +12,7 @@ public class HeadingSystem : JobComponentSystem
         return new HeadingJob().Schedule(this, inputDeps);
     }
 
+    [BurstCompile]
     private struct HeadingJob : IJobForEach<Heading, Rotation>
     {
         public void Execute([ReadOnly] ref Heading heading, ref Rotation rotation)

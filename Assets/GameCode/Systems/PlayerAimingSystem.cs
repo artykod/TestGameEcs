@@ -9,16 +9,16 @@ public class PlayerAimingSystem : ComponentSystem
         var isAiming = Input.GetMouseButton(1);
         if (isAiming)
         {
-            Entities.WithAll<PlayerMarker>().WithNone<AimingMarker>().ForEach((Entity entity) =>
+            Entities.WithAllReadOnly<PlayerMarker>().WithNone<AimingMarker>().ForEach((Entity entity) =>
             {
-                EntityManager.AddComponent<AimingMarker>(entity);
+                PostUpdateCommands.AddComponent<AimingMarker>(entity);
             });
         }
         else
         {
-            Entities.WithAll<PlayerMarker, AimingMarker>().ForEach((Entity entity) =>
+            Entities.WithAllReadOnly<PlayerMarker, AimingMarker>().ForEach((Entity entity) =>
             {
-                EntityManager.RemoveComponent<AimingMarker>(entity);
+                PostUpdateCommands.RemoveComponent<AimingMarker>(entity);
             });
         }
     }

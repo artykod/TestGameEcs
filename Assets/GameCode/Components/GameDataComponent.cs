@@ -7,6 +7,7 @@ using UnityEngine;
 public struct GameData : ISharedComponentData, IEquatable<GameData>
 {
     public float3 FieldSize;
+    public float EnemySpawnPeriod;
     public GameObject BulletPrefab;
     public GameObject EnemyPrefab;
 

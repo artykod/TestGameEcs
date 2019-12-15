@@ -4,8 +4,9 @@
 Material:
   serializedVersion: 6
   m_ObjectHideFlags: 0
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 0}
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
   m_Name: Bullet
   m_Shader: {fileID: 4800000, guid: d7cbc0bf850e87244a833bb6a4c94cfd, type: 3}
   m_ShaderKeywords: 
@@ -74,4 +75,5 @@ Material:
     m_Colors:
     - _Color: {r: 0.52752376, g: 0.8, b: 0.07843137, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
-    - _Scale: {r: 0.1, g: 0.1, b: 1, a: 1}
+    - _Scale: {r: 0.02, g: 0.02, b: 1, a: 1}
+  m_BuildTextureStacks: []

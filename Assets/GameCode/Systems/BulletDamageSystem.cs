@@ -1,57 +1,140 @@
-﻿using Unity.Collections;
+﻿using Unity.Burst;
+using Unity.Collections;
 using Unity.Entities;
+using Unity.Jobs;
 using Unity.Transforms;
 
-public class BulletDamageSystem : ComponentSystem
+public class BulletDamageSystem : JobComponentSystem
 {
-    private struct UnitInfo
+    private EntityQuery _unitsQuery;
+    private EntityQuery _bulletsQuery;
+
+    protected override void OnCreate()
     {
-        public TeamId team;
-        public Entity entity;
-        public Translation position;
-        public SphereCollider collider;
-    }
+        base.OnCreate();
 
-    protected override void OnUpdate()
-    {
-        var allDamage = World.GetExistingSystem<DamageApplySystem>().DealtDamage;
-        var units = new NativeList<UnitInfo>(Allocator.Temp);
-
-        Entities.ForEach((Entity entity, ref TeamId team, ref Translation position, ref SphereCollider collider) =>
+        _unitsQuery = GetEntityQuery(new EntityQueryDesc
         {
-            units.Add(new UnitInfo
+            All = new ComponentType[] 
             {
-                team = team,
-                entity = entity,
-                position = position,
-                collider = collider,
-            });
-        });
-
-        Entities.WithAllReadOnly<BulletMarker>().ForEach((Entity entity, ref Speed speed, ref TeamId team, ref Damage damage, ref Heading heading, ref Translation position) =>
-        {
-            for (int i = 0, l = units.Length; i < l; ++i)
-            {
-                var unit = units[i];
-
-                if (unit.team.Value == team.Value)
-                {
-                    continue;
-                }
-
-                var velocity = heading.Value * speed.Value;
-                var nextFramePosition = position.Value + velocity * Time.DeltaTime;
-
-                if (!CollisionHelper.IsSphereVsSegmentCollision(position.Value, nextFramePosition, unit.position.Value, unit.collider.Radius))
-                {
-                    continue;
-                }
-
-                allDamage.Add(unit.entity, damage);
-                PostUpdateCommands.DestroyEntity(entity);
+                ComponentType.ReadOnly<TeamId>(),
+                ComponentType.ReadOnly<Translation>(),
+                ComponentType.ReadOnly<SphereCollider>(),
             }
         });
 
-        units.Dispose();
+        _bulletsQuery = GetEntityQuery(new EntityQueryDesc
+        {
+            All = new ComponentType[]
+            {
+                ComponentType.ReadOnly<BulletMarker>(),
+                ComponentType.ReadOnly<Speed>(),
+                ComponentType.ReadOnly<TeamId>(),
+                ComponentType.ReadOnly<Damage>(),
+                ComponentType.ReadOnly<Heading>(),
+                ComponentType.ReadOnly<Translation>(),
+            }
+        });
+    }
+
+    protected override JobHandle OnUpdate(JobHandle inputDeps)
+    {
+        var gameSystem = World.GetExistingSystem<DamageApplySystem>();
+        var ecbSource = World.GetExistingSystem<EndSimulationEntityCommandBufferSystem>();
+
+        var unitChunks = _unitsQuery.CreateArchetypeChunkArray(Allocator.TempJob);
+        var bulletChunks = _bulletsQuery.CreateArchetypeChunkArray(Allocator.TempJob);
+
+        return new BulletDamageJob
+        {
+            DeltaTime = Time.DeltaTime,
+
+            UnitChunks = unitChunks,
+            BulletChunks = bulletChunks,
+
+            EntityType = GetArchetypeChunkEntityType(),
+            SpeedType = GetArchetypeChunkComponentType<Speed>(true),
+            DamageType = GetArchetypeChunkComponentType<Damage>(true),
+            TeamIdType = GetArchetypeChunkComponentType<TeamId>(true),
+            HeadingType = GetArchetypeChunkComponentType<Heading>(true),
+            TranslationType = GetArchetypeChunkComponentType<Translation>(true),
+            SphereColliderType = GetArchetypeChunkComponentType<SphereCollider>(true),
+
+            DealtDamage = gameSystem.DealtDamage.AsParallelWriter(),
+            CommandBuffer = ecbSource.CreateCommandBuffer().ToConcurrent(),
+        }.Schedule(bulletChunks.Length, 32, inputDeps);
+    }
+
+    [BurstCompile]
+    private struct BulletDamageJob : IJobParallelFor
+    {
+        public float DeltaTime;
+
+        [ReadOnly, DeallocateOnJobCompletion] public NativeArray<ArchetypeChunk> UnitChunks;
+        [ReadOnly, DeallocateOnJobCompletion] public NativeArray<ArchetypeChunk> BulletChunks;
+
+        [ReadOnly] public ArchetypeChunkEntityType EntityType;
+        [ReadOnly] public ArchetypeChunkComponentType<Speed> SpeedType;
+        [ReadOnly] public ArchetypeChunkComponentType<Damage> DamageType;
+        [ReadOnly] public ArchetypeChunkComponentType<TeamId> TeamIdType;
+        [ReadOnly] public ArchetypeChunkComponentType<Heading> HeadingType;
+        [ReadOnly] public ArchetypeChunkComponentType<Translation> TranslationType;
+        [ReadOnly] public ArchetypeChunkComponentType<SphereCollider> SphereColliderType;
+
+        [WriteOnly] public EntityCommandBuffer.Concurrent CommandBuffer;
+        [WriteOnly] public NativeMultiHashMap<Entity, Damage>.ParallelWriter DealtDamage;
+
+        public void Execute(int bulletChunkIdx)
+        {
+            var bulletChunk = BulletChunks[bulletChunkIdx];
+            var bulletEntities = bulletChunk.GetNativeArray(EntityType);
+            var bulletSpeeds = bulletChunk.GetNativeArray(SpeedType);
+            var bulletTeamIds = bulletChunk.GetNativeArray(TeamIdType);
+            var bulletDamages = bulletChunk.GetNativeArray(DamageType);
+            var bulletHeadings = bulletChunk.GetNativeArray(HeadingType);
+            var bulletPositions = bulletChunk.GetNativeArray(TranslationType);
+
+            for (int bulletIdx = 0, bulletCount = bulletChunk.Count; bulletIdx < bulletCount; ++bulletIdx)
+            {
+                var bulletEntity = bulletEntities[bulletIdx];
+                var bulletSpeed = bulletSpeeds[bulletIdx];
+                var bulletTeamId = bulletTeamIds[bulletIdx];
+                var bulletDamage = bulletDamages[bulletIdx];
+                var bulletHeading = bulletHeadings[bulletIdx];
+                var bulletPosition = bulletPositions[bulletIdx];
+                var bulletVelocity = bulletHeading.Value * bulletSpeed.Value;
+                var bulletNextFramePosition = bulletPosition.Value + bulletVelocity * DeltaTime;
+
+                for (int unitChunkIdx = 0, unitChunkCount = UnitChunks.Length; unitChunkIdx < unitChunkCount; ++unitChunkIdx)
+                {
+                    var unitChunk = UnitChunks[unitChunkIdx];
+                    var unitEntities = unitChunk.GetNativeArray(EntityType);
+                    var unitTeamIds = unitChunk.GetNativeArray(TeamIdType);
+                    var unitPositions = unitChunk.GetNativeArray(TranslationType);
+                    var unitSphereColliders = unitChunk.GetNativeArray(SphereColliderType);
+
+                    for (int unitIdx = 0, unitCount = unitChunk.Count; unitIdx < unitCount; ++unitIdx)
+                    {
+                        var unitTeamId = unitTeamIds[unitIdx];
+                        var unitEntity = unitEntities[unitIdx];
+                        var unitPosition = unitPositions[unitIdx];
+                        var unitSphereCollider = unitSphereColliders[unitIdx];
+
+                        if (unitTeamId.Value == bulletTeamId.Value)
+                        {
+                            continue;
+                        }
+
+                        if (!CollisionHelper.IsSphereVsSegmentCollision(bulletPosition.Value, bulletNextFramePosition, unitPosition.Value, unitSphereCollider.Radius))
+                        {
+                            continue;
+                        }
+
+                        DealtDamage.Add(unitEntity, bulletDamage);
+                        CommandBuffer.DestroyEntity(bulletChunkIdx, bulletEntity);
+                    }
+                }
+            }
+        }
     }
 }

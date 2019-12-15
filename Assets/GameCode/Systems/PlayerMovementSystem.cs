@@ -31,7 +31,7 @@ public class PlayerMovementSystem : ComponentSystem
         {
             direction = math.normalize(direction);
 
-            Entities.WithAll<PlayerMarker>().WithNone<MovingMarker>().ForEach((Entity entity) =>
+            Entities.WithAllReadOnly<PlayerMarker>().WithNone<MovingMarker>().ForEach((Entity entity) =>
             {
                 EntityManager.AddComponent<MovingMarker>(entity);
             });
@@ -44,7 +44,7 @@ public class PlayerMovementSystem : ComponentSystem
             });
         }
 
-        Entities.WithAll<PlayerMarker>().ForEach((ref Movement movement, ref GameCameraListener cameraData) =>
+        Entities.WithAllReadOnly<PlayerMarker>().ForEach((ref Movement movement, ref GameCameraListener cameraData) =>
         {
             var cameraRotation = cameraData.Rotation;
             var directionInCamera = math.mul(cameraRotation, direction);
